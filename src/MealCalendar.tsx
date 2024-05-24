@@ -24,26 +24,29 @@ const initialWeekPlan: IDayPlan[] = [
   { day: 'Sunday', meals: [] },
 ];
 
-const MealItem = ({ meal, findMeal, onRemove }: { meal: IMeal; findMeal: (id: string) => void; onRemove?: () => void }) => {
+const MealItem = ({ meal, findMeal, onRemove }: { meal: IMeal; findMeal: (id: string, name?: string, calories?: number) => void; onRemove?: () => void }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "meal",
     item: { id: meal.id },
-    end: (item, monitor) => {
-      const dropResult = monitor.getDropResult<IDayPlan>();
-      if (item && dropResult) {
-        findMeal(item.id);
-      }
-    },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
   }));
 
   const handleDoubleClick = () => {
-    const newName = prompt("Enter new meal name:", meal.name);
-    const newCalories = prompt("Enter new calorie count:", meal.calories.toString());
+    let newName = prompt("Enter new meal name:", meal.name);
+    let newCalories = prompt("Enter new calorie count:", meal.calories.toString());
     if (newName && newCalories) {
-      findMeal(meal.id, newName, parseInt(newCalories));
+      // Simple validation for calories input
+      const caloriesNumber = parseInt(newCalories, 10);
+      if (isNaN(caloriesNumber)) {
+        alert("Calories must be a number.");
+        return;
+      }
+      findMeal(meal.id, newName, caloriesNumber);
+    } else if (newName || newCalories) {
+      // Handling the case where only one field may be updated to catch potential errors
+      alert("Both meal name and calorie count need to be provided.");
     }
   };
 
@@ -78,38 +81,49 @@ const MealCalendar: React.FC = () => {
   const [meals, setMeals] = useState<IMeal[]>([]);
 
   const addNewMeal = () => {
-    const newMealName = prompt("Enter meal name:");
-    if (!newMealName) return;
-    const newMealCalories = parseInt(prompt("Enter meal calories:") || '0', 10);
-    const newMeal: IMeal = { id: uuidv4(), name: newMealName, calories: newMealCalories || 0 };
+    let newMealName = prompt("Enter meal name:");
+    let newMealCalories = prompt("Enter meal calories:");
+    if (!newMealName || !newMealCalories) {
+      alert("Meal name and calories must be provided.");
+      return;
+    }
+    const caloriesNumber = parseInt(newMealCalories, 10);
+    if (isNaN(caloriesNumber)) {
+      alert("Calories must be a number.");
+      return;
+    }
+    const newMeal: IMeal = { id: uuidv4(), name: newMealName, calories: caloriesNumber };
     setMeals([...meals, newMeal]);
   };
 
   const moveMeal = (mealId: string, toDay: string, name?: string, calories?: number) => {
+    // Ensure that updates with name and calories follow rules
+    if ((name !== undefined && name.trim() === '') || (calories !== undefined && isNaN(calories))) {
+      alert("Invalid meal name or calorie count provided.");
+      return;
+    }
+
     // Update Meal if name or calories are provided
     if (name !== undefined && calories !== undefined) {
       setMeals(meals.map(meal => meal.id === mealId ? {...meal, name, calories} : meal));
     }
 
     const movingMeal = meals.find(meal => meal.id === mealId);
-    if (!movingMeal) return;
-
-    // To remove a meal from a day
-    if (toDay === '') {
-      setWeekPlan(weekPlan.map(dayPlan => ({
-        ...dayPlan,
-        meals: dayPlan.meals.filter(meal => meal.id !== mealId),
-      })));
-    } else {
-      // Add or move the meal to the specified day
-      setWeekPlan(weekPlan.map(dayPlan => {
-        if (dayPlan.day === toDay) {
-          return { ...dayPlan, meals: [...dayPlan.meals.filter(meal => meal.id !== mealId), movingMeal] };
-        } else {
-          return { ...dayPlan, meals: dayPlan.meals.filter(meal => meal.id !== mealId) };
-        }
-      }));
+    if (!movingMeal) {
+      alert("Meal not found.");
+      return;
     }
+
+    // To remove a meal from a day or move a meal to a specified day
+    setWeekPlan(weekPlan.map(dayPlan => {
+      if (dayPlan.day === toDay || toDay === '') {
+        const filteredMeals = dayPlan.meals.filter(meal => meal.id !== mealId);
+        const updatedMeals = toDay === dayPlan.day ? [...filteredMeals, movingMeal] : filteredMeals;
+        return { ...dayPlan, meals: updatedMeals };
+      } else {
+        return dayPlan;
+      }
+    }));
   };
 
   return (
