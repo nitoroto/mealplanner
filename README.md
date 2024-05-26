@@ -1,1 +1,48 @@
-This Node.js server is designed to offer a comprehensive solution for meal management. It is equipped to handle API requests efficiently and supports a wide range of functionalities including Create, Read, Update, and Delete (CRUD) operations for meal management. This enables users to seamlessly add, view, modify, and remove meals as per their needs. Additionally, the server incorporates user registration and login functionalities, ensuring secure access and personalized user experiences. Ideal for both individuals looking for a personal meal management system and businesses aiming to streamline their meal services, this server strives to provide a robust, user-friendly platform for effective meal management.
+# MealPlanner
+
+Welcome to MealPlanner, a comprehensive Node.js server designed to simplify meal management for both individuals and businesses. 
+
+## Key Features
+
+- **Efficient API Handling:** Seamlessly manage API requests.
+- **CRUD Operations:** Easily create, read, update, and delete meals.
+- **User Management:** Secure user registration and login functionalities.
+- **Personalized Experience:** Tailor meal plans to individual needs.
+
+## Overview
+
+MealPlanner offers a robust solution for effective meal management, making it ideal for:
+- **Individuals** looking for a personal meal management system.
+- **Businesses** aiming to streamline their meal services.
+
+## Features in Detail
+
+- **Create, Read, Update, Delete (CRUD) Operations:**
+  - Add new meals with ease.
+  - View detailed information about existing meals.
+  - Modify meal details as needed.
+  - Remove meals that are no longer required.
+
+- **User Registration and Login:**
+  - Secure user registration process.
+  - Easy login system ensuring personalized user experience.
+
+## Getting Started
+
+To get started with MealPlanner, follow these steps:
+
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/nitoroto/mealplanner.git
+   ```
+
+2. **Install dependencies:**
+   ```sh
+   cd mealplanner
+   npm install
+   ```
+
+3. **Start the server:**
+   ```sh
+   npm start
+   ```
