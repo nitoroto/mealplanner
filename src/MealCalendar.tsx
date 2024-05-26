@@ -45,7 +45,6 @@ const MealItem = ({ meal, findMeal, onRemove }: { meal: IMeal; findMeal: (id: st
       }
       findMeal(meal.id, newName, caloriesNumber);
     } else if (newName || newCalories) {
-      // Handling the case where only one field may be updated to catch potential errors
       alert("Both meal name and calorie count need to be provided.");
     }
   };
@@ -58,20 +57,19 @@ const MealItem = ({ meal, findMeal, onRemove }: { meal: IMeal; findMeal: (id: st
   );
 };
 
-const MealDropZone = ({ day, meals, onDropMeal }: { day: string; meals: IMeal[]; onDropMeal: (itemId: string, day: string, name?: string, calories?: number) => void }) => {
+const MealDropZone = ({ day, meals, onDropMeal, onClearMeals }: { day: string; meals: IMeal[]; onDropMeal: (itemId: string, day: string, name?: string, calories?: number) => void; onClearMeals?: () => void }) => {
   const [, drop] = useDrop(() => ({
     accept: "meal",
     drop: () => ({ day }),
   }));
 
-  const handleRemove = (id: string) => {
-    onDropMeal(id, day);
-  };
-
   return (
-    <div ref={drop} style={{ minHeight: '50px', margin: '10px', backgroundColor: 'lightgrey' }}>
-      <div>{day}</div>
-      {meals.map(meal => <MealItem key={meal.id} meal={meal} findMeal={(id, name?, calories?) => onDropMeal(id, day, name, calories)} onRemove={() => handleRemove(meal.id)}/>)}
+    <div ref={drop} style={{ minHeight: '50px', padding: '10px', backgroundColor: 'lightgrey', position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <strong>{day}</strong>
+        {onClearMeals && <button onClick={onClearMeals}>Clear Day</button>}
+      </div>
+      {meals.map(meal => <MealItem key={meal.id} meal={meal} findMeal={(id, name?, calories?) => onDropMeal(id, day, name, calories)} onRemove={() => onDropMeal(meal.id, day)}/>)}
     </div>
   );
 };
@@ -97,33 +95,31 @@ const MealCalendar: React.FC = () => {
   };
 
   const moveMeal = (mealId: string, toDay: string, name?: string, calories?: number) => {
-    // Ensure that updates with name and calories follow rules
-    if ((name !== undefined && name.trim() === '') || (calories !== undefined && isNaN(calories))) {
-      alert("Invalid meal name or calorie count provided.");
-      return;
-    }
-
-    // Update Meal if name or calories are provided
-    if (name !== undefined && calories !== undefined) {
-      setMeals(meals.map(meal => meal.id === mealId ? {...meal, name, calories} : meal));
-    }
-
-    const movingMeal = meals.find(meal => meal.id === mealId);
-    if (!movingMeal) {
-      alert("Meal not found.");
-      return;
-    }
-
-    // To remove a meal from a day or move a meal to a specified day
-    setWeekPlan(weekPlan.map(dayPlan => {
-      if (dayPlan.day === toDay || toDay === '') {
-        const filteredMeals = dayPlan.meals.filter(meal => meal.id !== mealId);
-        const updatedMeals = toDay === dayPlan.day ? [...filteredMeals, movingMeal] : filteredMeals;
-        return { ...dayPlan, meals: updatedMeals };
-      } else {
-        return dayPlan;
+    // Handle updates with provided name and/or calories
+    const updatedMeals = meals.map((meal) => (meal.id === mealId && (name !== undefined || calories !== undefined)) ? { ...meal, name: name ?? meal.name, calories: calories ?? meal.calories } : meal);
+    setMeals(updatedMeals);
+    
+    const updatedWeekPlan = weekPlan.map((dayPlan) => {
+      if (dayPlan.day === toDay) {
+        const filteredMeals = (toDay ? dayPlan.meals.filter((meal) => meal.id !== mealId) : dayPlan.meals);
+        const movingMeal = updatedMeals.find((meal) => meal.id === mealId);
+        if (movingMeal) {
+          return { ...dayPlan, meals: [...filteredMeals, movingMeal] };
+        }
+      } else if (!toDay) {
+        // Handle removal from all days if toDay is empty string
+        const filteredMeals = dayPlan.meals.filter((meal) => meal.id !== mealId);
+        return { ...dayPlan, meals: filteredMeals };
       }
-    }));
+      return dayPlan;
+    });
+
+    setWeekPlan(updatedWeekPlan);
+  };
+
+  const clearMealsForDay = (day: string) => {
+    const updatedWeekPlan = weekPlan.map(dayPlan => dayPlan.day === day ? { ...dayPlan, meals: [] } : dayPlan);
+    setWeekPlan(updatedWeekPlan);
   };
 
   return (
@@ -131,7 +127,7 @@ const MealCalendar: React.FC = () => {
       <button onClick={addNewMeal}>Add Global Meal</button>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
         {weekPlan.map(dayPlan => (
-          <MealDropZone key={dayPlan.day} day={dayPlan.day} meals={dayPlan.meals} onDropMeal={moveMeal} />
+          <MealDropZone key={dayPlan.day} day={dayPlan.day} meals={dayPlan.meals} onDropMeal={moveMeal} onClearMeals={() => clearMealsForDay(dayPlan.day)} />
         ))}
       </div>
       <div style={{ margin: '10px', backgroundColor: 'oldlace' }}>
