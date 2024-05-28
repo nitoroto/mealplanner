@@ -12,20 +12,20 @@ const useMealPlans = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMealPlans = async (retryCount = 0) => {
+  const fetchAndCacheMealPlans = async (retryAttempt = 0) => {
     setIsLoading(true);
     try {
       const cachedMealPlans = sessionStorage.getItem('mealPlans');
-      if(cachedMealPlans) {
+      if (cachedMealPlans) {
         setMealPlans(JSON.parse(cachedMealPlans));
       } else {
         const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/mealplans`);
         setMealPlans(response.data);
         sessionStorage.setItem('mealPlans', JSON.stringify(response.data));
       }
-    } catch (err: any) {
-      if (retryCount < 3) {
-        fetchMealPlans(retryCount + 1);
+    } catch (error: any) {
+      if (retryAttempt < 3) {
+        fetchAndCacheMealPlans(retryAttempt + 1);
       } else {
         setError('Unable to fetch meal plans. Please try again later.');
       }
@@ -34,46 +34,46 @@ const useMealPlans = () => {
     }
   };
 
-  const addMealPlan = async (newPlan: Omit<MealPlan, 'id'>) => {
+  const createMealPlan = async (mealPlanDetails: Omit<MealPlan, 'id'>) => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/mealplans`, newPlan);
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/mealplans`, mealPlanDetails);
       setMealPlans([...mealPlans, response.data]);
       sessionStorage.removeItem('mealPlans'); // Invalidate Cache
-    } catch (err: any) {
+    } catch (error: any) {
       setError('Failed to add meal plan.');
     }
   };
 
-  const updateMealPlan = async (id: string, updatedPlan: Omit<MealPlan, 'id'>) => {
+  const modifyMealPlan = async (mealPlanId: string, updatedDetails: Omit<MealPlan, 'id'>) => {
     try {
-      await axios.put(`${process.env.REACT_APP_BACKEND_URL}/mealplans/${id}`, updatedPlan);
-      const newMealPlans = mealPlans.map(plan => plan.id === id ? {...plan, ...updatedPlan} : plan);
-      setMealPlans(newMealPlans);
+      await axios.put(`${process.env.REACT_APP_BACKEND_URL}/mealplans/${mealPlanId}`, updatedDetails);
+      const updatedMealPlans = mealPlans.map(plan => plan.id === mealPlanId ? {...plan, ...updatedDetails} : plan);
+      setMealPlans(updatedMealPlans);
       sessionStorage.removeItem('mealPlans'); // Invalidate Cache
-    } catch (err: any) {
+    } catch (error: any) {
       setError('Failed to update meal plan.');
     }
   };
 
-  const deleteMealPlan = async (id: string) => {
-    const prevMealPlans = [...mealPlans];
-    const newMealPlans = mealPlans.filter(plan => plan.id !== id);
-    setMealPlans(newMealPlans); // Optimistic update
-    sessionStorage.setItem('mealPlans', JSON.stringify(newMealPlans)); // Update cache optimistically
+  const removeMealPlan = async (mealPlanId: string) => {
+    const previousMealPlans = [...mealPlans];
+    const filteredMealPlans = mealPlans.filter(plan => plan.id !== mealPlanId);
+    setMealPlans(filteredMealPlans); // Optimistic update
+    sessionStorage.setItem('mealPlans', JSON.stringify(filteredMealPlans)); // Update cache optimistically
     try {
-      await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/mealplans/${id}`);
-    } catch (err: any) {
-      setMealPlans(prevMealPlans); // Revert if API call fails
-      sessionStorage.setItem('mealPlans', JSON.stringify(prevMealPlans)); // Revert cache on failure
+      await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/mealplans/${mealPlanId}`);
+    } catch (error: any) {
+      setMealPlans(previousMealPlans); // Revert if API call fails
+      sessionStorage.setItem('mealPlans', JSON.stringify(previousMealPlans)); // Revert cache on failure
       setError('Failed to delete meal plan.');
     }
   };
 
   useEffect(() => {
-    fetchMealPlans();
+    fetchAndCacheMealPlans();
   }, []);
 
-  return { mealPlans, isLoading, error, addMealPlan, updateMealPlan, deleteMealPlan };
+  return { mealPlans, isLoading, error, addMealPlan: createMealPlan, updateMealPlan: modifyMealPlan, deleteMealPlan: removeMealPlan };
 };
 
 export default useMealPlans;
