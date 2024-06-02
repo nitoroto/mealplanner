@@ -9,9 +9,9 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const mealSchema = new mongoose.Schema({
     userId: String,
-    name: String,
-    calories: Number,
-    date: Date,
+    mealName: String, 
+    calorieCount: Number, 
+    consumptionDate: Date, 
 });
 
 const Meal = mongoose.model('Meal', mealSchema);
@@ -19,40 +19,40 @@ const Meal = mongoose.model('Meal', mealSchema);
 const app = express();
 app.use(bodyParser.json());
 
-app.post('/meals/bulk', (req, res) => {
+app.post('/meals/bulk-upload', (req, res) => { 
     Meal.insertMany(req.body.meals)
-        .then((result) => res.status(201).json(result))
-        .catch((error) => res.status(400).json({ error }));
+        .then(result => res.status(201).json(result))
+        .catch(error => res.status(400).json({ error }));
 });
 
-app.post('/meals', (req, res) => {
+app.post('/meals/add', (req, res) => { 
     const newMeal = new Meal({
         userId: req.body.userId,
-        name: req.body.name,
-        calories: req.body.calories,
-        date: req.body.date ? new Date(req.body.date) : new Date(),
+        mealName: req.body.mealName, 
+        calorieCount: req.body.calorieCount, 
+        consumptionDate: req.body.consumptionDate ? new Date(req.body.consumptionDate) : new Date(), 
     });
 
     newMeal.save()
-        .then((meal) => res.status(201).json(meal))
-        .catch((error) => res.status(400).json({ error }));
+        .then(meal => res.status(201).json(meal))
+        .catch(error => res.status(400).json({ error }));
 });
 
-app.get('/meals', (req, res) => {
-    const userIds = req.query.userIds.split(',');
-    Meal.find({ userId: { $in: userIds } })
-        .then((meals) => res.json(meals))
-        .catch((error) => res.status(404).json({ error }));
+app.get('/meals/view', (req, res) => { 
+    const userIdArray = req.query.userIds.split(','); 
+    Meal.find({ userId: { $in: userIdArray } })
+        .then(meals => res.json(meals))
+        .catch(error => res.status(404).json({ error }));
 });
 
-app.put('/meals/:mealId', (req, res) => {
+app.put('/meals/update/:mealId', (req, res) => { 
     Meal.findByIdAndUpdate(
         req.params.mealId,
         req.body,
         { new: true }
     )
-        .then((meal) => res.json(meal))
-        .catch((error) => res.status(400).json({ error }));
+        .then(updatedMeal => res.json(updatedMeal)) 
+        .catch(error => res.status(400).json({ error }));
 });
 
 const PORT = process.env.PORT || 3000;
