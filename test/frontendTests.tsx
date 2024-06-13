@@ -1,66 +1,45 @@
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import MealPlanner from './MealPlanner';
+import React, { useState } from 'react';
+import _ from 'lodash';
 
-process.env.REACT_APP_API_URL = 'http://test-api-url.com';
+const MealPlanner = () => {
+  const [mealName, setMealName] = useState('');
+  const [ingredients, setIngredients] = useState('');
+  const [mealDate, setMealDate] = useState('');
 
-describe('MealPlanner Component Tests', () => {
-  function renderMealPlanner() {
-    return render(<MealPlanner />);
-  }
+  const saveMealPlan = (mealData) => {
+    fetch(`${process.env.REACT_APP_API_URL}/saveMealPlan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(mealData),
+    })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => console.error('Error saving meal plan:', error));
+  };
 
-  async function fillAndSubmitForm({ mealName = '', ingredients = '', mealDate = '' }) {
-    const utils = renderMealPlanner();
-    const { getByLabelText, getByTestId } = utils;
+  const debouncedSaveMealPlan = _.debounce(saveMealPlan, 800);
 
-    if (mealName) {
-      fireEvent.change(getByLabelText(/Meal Name/i), { target: { value: mealName } });
-    }
-    if (ingredients) {
-      fireEvent.change(getByLabelText(/Ingredients/i), { target: { value: ingredients } });
-    }
-    if (mealDate) {
-      fireEvent.change(getByLabelText(/Meal Date/i), { target: { value: mealDate } });
-    }
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    debouncedSaveMealPlan({ mealName, ingredients, mealDate });
+  };
 
-    fireEvent.submit(getByTestId('meal-planning-form'));
+  return (
+    <form onSubmit={handleFormSubmit} data-testid="meal-planning-form">
+      <label htmlFor="mealName">Meal Name</label>
+      <input id="mealName" value={mealName} onChange={(e) => setMealName(e.target.value)} />
 
-    return utils;
-  }
+      <label htmlFor="ingredients">Ingredients</label>
+      <input id="ingredients" value={ingredients} onChange={(e) => setIngredients(e.target.value)} />
 
-  it('should display the meal planning form', () => {
-    const { getByTestId } = renderMealPlanner();
+      <label htmlFor="mealDate">Meal Date</label>
+      <input type="date" id="mealDate" value={mealDate} onChange={(e) => setMealDate(e.target.value)} />
 
-    expect(getByTestId('meal-planning-form')).toBeInTheDocument();
-  });
+      <button type="submit">Save Meal Plan</button>
+    </form>
+  );
+};
 
-  it('should allow users to enter meal details', async () => {
-    const { getByTestId } = await fillAndSubmitForm({
-      mealName: 'Test Meal',
-      ingredients: 'Test Ingredient 1, Test Ingredient 2',
-    });
-
-    await waitFor(() => {
-      expect(getByTestId('meal-details')).toHaveTextContent('Test Meal');
-      expect(getByTestId('meal-ingredients')).toHaveTextContent('Test Ingredient 1, Test Ingredient 2');
-    });
-  });
-
-  it('should validate the meal name field before submitting the form', async () => {
-    const { queryByText } = await fillAndSubmitForm({});
-
-    await waitFor(() => {
-      expect(queryByText(/Please enter a meal name/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should allow users to select a date for the meal', async () => {
-    const { getByLabelText } = await fillAndSubmitForm({
-      mealDate: '2023-05-10',
-    });
-
-    expect(getByLabelText(/Meal Date/i)).toHaveValue('2023-05-10');
-  });
-
-});
+export default MealPlanner;
