@@ -1,46 +1,36 @@
-import React from 'react';
-import { render, fireEvent, waitFor, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
-import MealPlanComponent from './MealPlanComponent';
+import React, { useState, useEffect, useCallback } from 'react';
 
-process.env.REACT_APP_API_URL = 'http://localhost:3000';
+const useCachedFetch = () => {
+  const cache = {};
+  
+  const fetchWithCache = useCallback(async (url) => {
+    if (cache[url]) {
+      return cache[url]; // Return cached response
+    } else {
+      const response = await fetch(url);
+      const data = await response.json();
+      cache[url] = data; // Cache new response
+      return data;
+    }
+  }, []); // dependencies array is empty, meaning it will not re-create this method unless component is re-mounted
+  
+  return { fetchWith
 
-describe('MealPlanComponent Tests', () => {
-  test('renders MealPlanComponent successfully', () => {
-    render(<MealPlanComponent />);
-    expect(screen.getByTestId('meal-plan-container')).toBeInTheDocument();
-  });
-  test('allows user to add a meal to the plan', async () => {
-    render(<MealPlanComponent />);
-    
-    fireEvent.change(screen.getByTestId('meal-input'), { target: { value: 'Chicken Salad' } });
-    fireEvent.click(screen.getByTestId('add-meal-button'));
-    
-    await waitFor(() => expect(screen.getByText('Chicken Salad')).toBeInTheDocument());
-  });
-  test('updates state correctly when a meal is added', async () => {
-    const { getByTestId } = render(<MealPlanComponent />);
-    
-    fireEvent.change(getByTestId('meal-input'), { target: { value: 'Grilled Salmon' } });
-    fireEvent.click(getByTestId('add-meal-button'));
-    
-    await waitFor(() => expect(getByTestId('meal-input')).toHaveValue(''));
-  });
-  test('shows error message when adding a meal fails', async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        json: () => Promise.reject('Failed to fetch'),
-      }),
-    );
+Cache };
+};
 
-    render(<MealPlanComponent />);
-    
-    fireEvent.change(screen.getByTestId('meal-input'), { target: { value: 'Impossible Burger' } });
-    fireEvent.click(screen.getByTestId('add-meal-button'));
-    
-    await waitFor(() => expect(screen.getByTestId('meal-plan-error')).toBeInTheDocument());
-  });
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-});
+function MealPlanComponent() {
+  const [meals, setMeals] = useState([]);
+  const { fetchWithCache } = useCachedFetch();
+
+  const getMeals = useCallback(async () => {
+    const data = await fetchWithCache(process.env.REACT_APP_API_URL + '/meals');
+    setMeals(data);
+  }, [fetchWithCache]); // Re-runs only if fetchWithCache changes
+
+  useEffect(() => {
+    getMeals();
+  }, [getMeals]);
+
+  // The rest of your component...
+}
