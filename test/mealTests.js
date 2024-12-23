@@ -61,4 +61,38 @@ describe('Meal Management Functionalities Tests', () => {
 
     expect(response.statusCode).toEqual(401);
   });
+
+  it('should return an error for creating a meal without required fields', async () => {
+    const response = await request(app)
+      .post('/meals')
+      .send({})
+      .set('Authorization', authToken);
+
+    expect(response.statusCode).toEqual(400);
+    expect(response.body).toHaveProperty('error');
+    expect(response.body.error).toEqual('Missing required meal fields');
+  });
+
+  it('should return an error for updating a non-existing meal', async () => {
+    const nonExistingMealId = 'nonExistingMealId';
+    const response = await request(app)
+      .put(`/meals/${nonExistingMealId}`)
+      .send(mealToUpdateData)
+      .set('Authorization', authToken);
+
+    expect(response.statusCode).toEqual(404);
+    expect(response.body).toHaveProperty('error');
+    expect(response.body.error).toEqual('Meal not found');
+  });
+
+  it('should return an error for deleting a non-existing meal', async () => {
+    const nonExistingMealId = 'nonExistingMealIdForDeletion';
+    const response = await request(app)
+      .delete(`/meals/${nonExistingMealId}`)
+      .set('Authorization', authToken);
+
+    expect(response.statusCode).toEqual(404);
+    expect(response.body).toHaveProperty('error');
+    expect(response.body.error).toEqual('Meal to delete not found');
+  });
 });
